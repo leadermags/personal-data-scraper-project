@@ -1,15 +1,14 @@
 #! python3
 import requests
-from pywebcopy import WebPage, elements, save_webpage
 import pyperclip, bs4
 import re
 import openpyxl, os
 
 def main():
   print('Please copy the links onto your clipboard (Ctrl+C) before inputting file name.')
-
+  print('This is your current working directory: ' + os.getcwd())
   try:
-    print('Where would you like to save your file at?')
+    print('Where would you like to save your file at? Please input the full path: ')
     location = input()
     os.chdir(location)
   except:
