@@ -26,7 +26,7 @@ Openpyxl Module - creates and edits Excel workbooks
 
 ## Setting up PATH environmental variable:
 
-This allows you to run the Python script using the Windows+R command. The instructions I followed are from [*Automate the Boring Stuff*](https://automatetheboringstuff.com/2e/appendixb/).
+This allows you to run the Python script using the Windows+R command. The instructions I followed are from [*Automate the Boring Stuff with Python*](https://automatetheboringstuff.com/2e/appendixb/).
 
 Using the template Personal-Data-Scraper.bat, edit the file path to match your own file path of where the Python script is saved then save the Bat file in the same folder as the script.
 
