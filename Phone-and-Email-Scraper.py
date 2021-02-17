@@ -1,4 +1,4 @@
-# #! python3
+#! python3
 import requests
 from pywebcopy import WebPage, elements, save_webpage
 import pyperclip, bs4
