@@ -1,4 +1,4 @@
-# Phone Numbers and Email Scraper
+# Personal Data Web Scraper
 
 Goes through the copied links then extracts any emails, phone numbers, and SSN from each link that was copied then paste into an Excel workbook.
 
