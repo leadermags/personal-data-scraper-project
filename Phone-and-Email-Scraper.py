@@ -6,21 +6,20 @@ import re
 import openpyxl, os
 
 def main():
+  print('Please copy the links onto your clipboard (Ctrl+C) before inputting file name.')
+
   print('What do you want to save your file as? ')
   fileName = input() + '.xlsx'
 
   getLink(fileName)
-  
-  location = os.getcwd()
-  print('Emails and Phone Numbers extracted. ')
-  print('Data saved in ' + location + '\\' + fileName)
 
 # Extract links
 def getLink(fileName):
   # Create a regex for webpages
   linkRegex = re.compile(r'''
 
-  (http(s)?://[a-zA-Z0-9_.+-/]+)      # links starting with http:// or https://
+  (http(s)?://                      # links starting with http:// or https://
+  [a-zA-Z0-9_.+-/]+)      
 
   ''', re.VERBOSE)
 
@@ -28,7 +27,7 @@ def getLink(fileName):
   extractedLinks = linkRegex.findall(copiedLinks)
   allLinks = []
   for l in extractedLinks:
-    allLinks.append(l[0])
+    allLinks.append(l[0])           # only save link at index 0
   wb = openpyxl.Workbook()
   sheet = wb['Sheet']
   sheet.title = 'All Links'
@@ -48,6 +47,13 @@ def getLink(fileName):
     i += 1
     wb.save(fileName)
 
+  if len(allLinks) != 0:
+    location = os.getcwd()
+    print('Emails and Phone Numbers extracted. ')
+    print('Data saved in ' + location + '\\' + fileName)
+  else:
+    print('No links were found. No file created.')
+
 # Copy text from links' html using bs4
 def getSource(link):
   try:
@@ -57,7 +63,7 @@ def getSource(link):
     elems = soup.select('body')
     return pyperclip.copy(str(elems))
   except:
-    print('Could not get ' + link + ' webpage')
+    print('Could not get ' + link)
   
 def extractPhone(copiedText):
   # Create a regex for phone numbers
@@ -77,7 +83,7 @@ def extractPhone(copiedText):
   
   allPhoneNumbers = []
   for phoneNumber in extractedPhone:
-      allPhoneNumbers.append(phoneNumber[0])
+      allPhoneNumbers.append(phoneNumber[0])    # only saves phone number at index 0
 
   return allPhoneNumbers
 
