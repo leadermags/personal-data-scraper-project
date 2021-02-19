@@ -1,12 +1,18 @@
 # Personal Data Web Scraper
 
-Goes through the copied links then extracts any emails, phone numbers, and SSN from each link that was copied then paste into an Excel workbook.
+This is a Python script that goes through the copied links then scrapes any emails, phone numbers, and SSN from each link that was copied onto the clipboard, then paste those data into an Excel workbook. This is for anyone or any organizations that do not want private emails to readily available to the public. From my internship experience, I learned about the risks that follow a successful phishing attack. By limiting private email addresses found on public webpages and have a group email instead can deter targeted phishing attacks.
 
-Project started off with one of Al Sweigart's [*Automate the Boring Stuff with Python*](https://automatetheboringstuff.com/2e/chapter7/) projects. Then I got inspired to incorporate other ways to automate and track the amount of emails and phone numbers found on websites.
+On the saved Excel workbook, the first sheet will be a list of all the links that was found in the copied text in your clipboard. The subsequent sheets correlate to the data scraped for which row of the first sheet, 'All Links'. In the subsequent sheets:
+- Column A - Link Address
+- Column B - Email Address(es)
+- Column C - Phone Number(s)
+- Column D - SSN
 
 There is also a .bat file template to allow you to run the script using Windows+R.
 
 I would like to expand this project to extract other personal data.
+
+The project started off with one of Al Sweigart's [*Automate the Boring Stuff with Python*](https://automatetheboringstuff.com/2e/chapter7/) projects. Then I got inspired to incorporate other ways to automate and track the amount of emails and phone numbers found on websites. I've recently included scraping for SSN. 
 
 ## Installing the modules used in this script:
 
