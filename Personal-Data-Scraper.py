@@ -22,7 +22,7 @@ def main():
   didCreateFile = getLink(fileName)
 
   if(didCreateFile):
-    print('Any Emails, Phone Numbers, and SSN are extracted. ')
+    print('Any Emails and Phone Numbers are extracted. ')
     print('Data saved in ' + location + '\\' + fileName)
   else:
     print('No links were found. No file created.')
@@ -64,10 +64,9 @@ def getLink(fileName):
     copiedText = pyperclip.paste()
     extractedPhone = extractPhone(copiedText)
     extractedEmail = extractEmail(copiedText)
-    extractedSSN = extractSSN(copiedText)
 
     # calls function to paste extracted text into spreadsheet
-    pasteText(extractedPhone, extractedEmail, extractedSSN, link, wb, str(i))
+    pasteText(extractedPhone, extractedEmail, link, wb, str(i))
 
     i += 1
     wb.save(fileName)
@@ -91,26 +90,7 @@ def getSource(link):
     return pyperclip.copy(str(elems))
   except:
     print('ERROR: Could not get ' + link)
-  
-def extractSSN(copiedText):
-
-  # Create a regex for SSN
-  ssnRegex = re.compile(r'''
-  # 000-00-0000, xxx-xx-0000, ***-**-0000
-  # not going to include this format 000000000 because there are more false positives
-  (
-  ((\d|x|\*){3}-(\d|x|\*){2}-(\d{4}))
-  )
-  ''', flags=re.VERBOSE | re.I)
-
-  extractedSSN = ssnRegex.findall(copiedText)
-
-  allSSN = []
-  for ssn in extractedSSN:
-    allSSN.append(ssn[0])    # only saves SSN at index 0
-
-  return allSSN
-
+ 
 def extractPhone(copiedText):
 
   # Create a regex for phone numbers
@@ -152,13 +132,13 @@ def extractEmail(copiedText):
   return extractedEmail
 
 # Input data into spreadsheet
-def pasteText(allPhoneNumbers, extractedEmail, extractedSSN, link, wb, sh):
+def pasteText(allPhoneNumbers, extractedEmail, link, wb, sh):
 
   # wb stands for workbook, and sh stands for current sheet name
   sheet = wb[sh]
 
   # pastes the same link for every email, phone number, and SSN found
-  for j in range(0, len(extractedEmail) + len(allPhoneNumbers) + len(extractedSSN)):
+  for j in range(0, len(extractedEmail) + len(allPhoneNumbers)):
     cellNumber = 'A' + str(j + 1)
     sheet[cellNumber] = link
 
@@ -173,11 +153,6 @@ def pasteText(allPhoneNumbers, extractedEmail, extractedSSN, link, wb, sh):
   for p in allPhoneNumbers:
     cellNumber = 'C' + str(i)
     sheet[cellNumber] = str(p)
-    i += 1
-
-  for s in extractedSSN:
-    cellNumber = 'D' + str(i)
-    sheet[cellNumber] = str(s)
     i += 1
 
 main()
