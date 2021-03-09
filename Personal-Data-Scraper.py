@@ -2,33 +2,55 @@
 import requests
 import pyperclip, bs4
 import re
-import openpyxl, os
+import sqlite3
+import pandas as pd
+import os
+
+fileName = 'scraper_results.csv'
+dbName = 'scraped-personal-data.db'
+location = os.getcwd()
 
 def main():
-  print('Please copy the links onto your clipboard (Ctrl+C) before inputting file name.')
-  print('This is your current working directory: ' + os.getcwd())
-  try:
-    print('Where would you like to save your file at? Please input the full path: ')
-    location = input()
-    os.chdir(location)
-  except:
-    location = os.getcwd()
-    print('You did not enter a valid path. File will be saved in current working directory.')
+  conn = sqlite3.connect(dbName)
+  c = conn.cursor()
 
-  print('What name do you want to save your file as? ')
-  fileName = input() + '.xlsx'
+  # c.execute('''CREATE TABLE emailsAndPhones(date DATE, link TEXT, email TEXT, phone TEXT)''')
+  c.execute('''CREATE TABLE Links(ID INT, Link TEXT)''')
+  c.execute('''CREATE TABLE Emails(ID INT, Link TEXT, Email TEXT)''')
+  c.execute('''CREATE TABLE Phones(ID INT, Link TEXT, Phone TEXT)''')
+  
+  conn.commit()
 
-  # return a boolean
-  didCreateFile = getLink(fileName)
+  getLink()
 
-  if(didCreateFile):
-    print('Any Emails and Phone Numbers are extracted. ')
-    print('Data saved in ' + location + '\\' + fileName)
+  print('Do you want to save it into a CSV? ')
+  saveToCSV = input()
+
+  if (saveToCSV.lower() == 'yes'):
+      
+    sql = """SELECT l.Link, e.Email, ''
+          FROM Links l
+          INNER JOIN Emails e ON l.Link = e.Link
+          
+          UNION ALL
+          
+          SELECT l.Link, '', p.Phone
+          FROM Links l
+          INNER JOIN Phones p ON l.Link = p.Link;"""
+    
+    df = pd.read_sql_query(sql, conn)
+
+    df.to_csv(fileName)
+
+    print('Scraped Emails and Phone Numbers saved in CSV: ' + location + '\\' + fileName)
+
   else:
-    print('No links were found. No file created.')
+    print('Scraped Emails and Phone Numbers saved in database: ' + location + '\\' + dbName)
+
+  conn.close()
 
 # Extract links then calls other functions for each link in extracted links
-def getLink(fileName):
+def getLink():
   # Create a regex for webpages
   linkRegex = re.compile(r'''
   (http(s)?://                      # links starting with http:// or https://
@@ -41,22 +63,16 @@ def getLink(fileName):
   allLinks = []
   for l in extractedLinks:
     allLinks.append(l[0])           # only save link at index 0
-  
-  # creates a new Excel workbook
-  wb = openpyxl.Workbook()
-  sheet = wb['Sheet']
 
-  sheet.title = 'All Links'
+  conn = sqlite3.connect('scraped-personal-data.db')
+  c = conn.cursor()
 
   # i iterates for each cell number
   i = 1      
   for link in allLinks:
-    cellNumber = 'A' + str(i)
-    sheet[cellNumber] = str(link)
-    
-    # each corresponding row for links on this sheet will correspond to the other sheet's name
-    wb.create_sheet(str(i))
 
+    c.execute('''INSERT INTO Links VALUES(?, ?)''', (i, link))
+    
     # calls function to get the HTML source of each link
     getSource(link)
     
@@ -65,18 +81,31 @@ def getLink(fileName):
     extractedPhone = extractPhone(copiedText)
     extractedEmail = extractEmail(copiedText)
 
-    # calls function to paste extracted text into spreadsheet
-    pasteText(extractedPhone, extractedEmail, link, wb, str(i))
+    j = 1
+    try:
+      for phone in extractedPhone:
+        c.execute('''INSERT INTO Phones VALUES(?, ?, ?)''', (j, link, phone))
+    except:
+      c.execute('''INSERT INTO Phones VALUES(?, ?, ?)''', (j, link, 'null'))
+    
+    j = 1
+    try: 
+      for email in extractedEmail:
+        c.execute('''INSERT INTO Emails VALUES(?, ?, ?)''', (j, link, email))
+    except:
+      c.execute('''INSERT INTO Emails VALUES(?, ?, ?)''', (j, link, 'null'))
 
     i += 1
-    wb.save(fileName)
 
+    conn.commit()
+
+  return
   # checks if there were any links that could be found in clipboard
-  if len(allLinks) != 0:
-    return True
+  # if len(allLinks) != 0:
+  #   return True
     
-  else:
-    return False
+  # else:
+  #   return False 
 
 # Copy text from links' html using bs4
 def getSource(link):
@@ -90,7 +119,7 @@ def getSource(link):
     return pyperclip.copy(str(elems))
   except:
     print('ERROR: Could not get ' + link)
- 
+
 def extractPhone(copiedText):
 
   # Create a regex for phone numbers
@@ -130,29 +159,5 @@ def extractEmail(copiedText):
   extractedEmail = emailRegex.findall(copiedText)
 
   return extractedEmail
-
-# Input data into spreadsheet
-def pasteText(allPhoneNumbers, extractedEmail, link, wb, sh):
-
-  # wb stands for workbook, and sh stands for current sheet name
-  sheet = wb[sh]
-
-  # pastes the same link for every email, phone number, and SSN found
-  for j in range(0, len(extractedEmail) + len(allPhoneNumbers)):
-    cellNumber = 'A' + str(j + 1)
-    sheet[cellNumber] = link
-
-  # i iterates each cell number
-  i = 1
-
-  for e in extractedEmail:
-    cellNumber = 'B' + str(i)
-    sheet[cellNumber] = str(e)
-    i += 1
-
-  for p in allPhoneNumbers:
-    cellNumber = 'C' + str(i)
-    sheet[cellNumber] = str(p)
-    i += 1
 
 main()
