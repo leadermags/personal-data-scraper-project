@@ -8,26 +8,35 @@ import os
 
 fileName = 'scraper_results.csv'
 dbName = 'scraped-personal-data.db'
+# Get current working directory to know where file will be saved
 location = os.getcwd()
 
 def main():
+
+  # Connect to database
   conn = sqlite3.connect(dbName)
+  # Allow database manipulation
   c = conn.cursor()
 
-  # c.execute('''CREATE TABLE emailsAndPhones(date DATE, link TEXT, email TEXT, phone TEXT)''')
-  c.execute('''CREATE TABLE Links(ID INT, Link TEXT)''')
-  c.execute('''CREATE TABLE Emails(ID INT, Link TEXT, Email TEXT)''')
-  c.execute('''CREATE TABLE Phones(ID INT, Link TEXT, Phone TEXT)''')
-  
-  conn.commit()
+  try:
+    # SQL query to create tables Links, Emails, Phones
+    c.execute('''CREATE TABLE Links(ID INT, Link TEXT)''')
+    c.execute('''CREATE TABLE Emails(ID INT, Link TEXT, Email TEXT)''')
+    c.execute('''CREATE TABLE Phones(ID INT, Link TEXT, Phone TEXT)''')
+    # Save created tables into database
+    conn.commit()
+  except:
+    print('Tables already exists...')
 
+  # Uses clipboard to extract each link
   getLink()
 
   print('Do you want to save it into a CSV? ')
   saveToCSV = input()
 
   if (saveToCSV.lower() == 'yes'):
-      
+
+    # SQL query to first outputs all emails then phone numbers into CSV
     sql = """SELECT l.Link, e.Email, ''
           FROM Links l
           INNER JOIN Emails e ON l.Link = e.Link
@@ -38,8 +47,8 @@ def main():
           FROM Links l
           INNER JOIN Phones p ON l.Link = p.Link;"""
     
+    # Use Pandas Module to allow write to CSV from database
     df = pd.read_sql_query(sql, conn)
-
     df.to_csv(fileName)
 
     print('Scraped Emails and Phone Numbers saved in CSV: ' + location + '\\' + fileName)
@@ -47,6 +56,7 @@ def main():
   else:
     print('Scraped Emails and Phone Numbers saved in database: ' + location + '\\' + dbName)
 
+  # Close database
   conn.close()
 
 # Extract links then calls other functions for each link in extracted links
@@ -57,20 +67,23 @@ def getLink():
   [a-zA-Z0-9_.+-/]+)      
   ''', flags=re.VERBOSE | re.I)
 
-  # extract links from clipboard
+  # Extract links from clipboard
   copiedLinks = pyperclip.paste()
   extractedLinks = linkRegex.findall(copiedLinks)
   allLinks = []
   for l in extractedLinks:
     allLinks.append(l[0])           # only save link at index 0
 
-  conn = sqlite3.connect('scraped-personal-data.db')
+  # Connect to database
+  conn = sqlite3.connect(dbName)
+  # Allow database manipulation
   c = conn.cursor()
 
-  # i iterates for each cell number
+  # i iterates for each ID number
   i = 1      
   for link in allLinks:
 
+    # SQL query to insert each link into table Links
     c.execute('''INSERT INTO Links VALUES(?, ?)''', (i, link))
     
     # calls function to get the HTML source of each link
@@ -81,31 +94,24 @@ def getLink():
     extractedPhone = extractPhone(copiedText)
     extractedEmail = extractEmail(copiedText)
 
+    # j iterates for each ID number for table Phones
     j = 1
-    try:
-      for phone in extractedPhone:
-        c.execute('''INSERT INTO Phones VALUES(?, ?, ?)''', (j, link, phone))
-    except:
-      c.execute('''INSERT INTO Phones VALUES(?, ?, ?)''', (j, link, 'null'))
-    
+    for phone in extractedPhone:
+      # SQL query to insert current link and each phone number into table Phones
+      c.execute('''INSERT INTO Phones VALUES(?, ?, ?)''', (j, link, phone))
+
+    # j iterates for each ID number for table Emails
     j = 1
-    try: 
-      for email in extractedEmail:
-        c.execute('''INSERT INTO Emails VALUES(?, ?, ?)''', (j, link, email))
-    except:
-      c.execute('''INSERT INTO Emails VALUES(?, ?, ?)''', (j, link, 'null'))
+    for email in extractedEmail:
+      # SQL query to insert current link and each email into table Emails
+      c.execute('''INSERT INTO Emails VALUES(?, ?, ?)''', (j, link, email))
 
     i += 1
 
+    # Save inserts into database
     conn.commit()
 
   return
-  # checks if there were any links that could be found in clipboard
-  # if len(allLinks) != 0:
-  #   return True
-    
-  # else:
-  #   return False 
 
 # Copy text from links' html using bs4
 def getSource(link):
@@ -121,7 +127,6 @@ def getSource(link):
     print('ERROR: Could not get ' + link)
 
 def extractPhone(copiedText):
-
   # Create a regex for phone numbers
   phoneRegex = re.compile(r'''
   # 000-000-0000, 000-0000, (000) 000-0000, 000-0000 ext 12345, ext. 12345, x12345
@@ -145,7 +150,6 @@ def extractPhone(copiedText):
   return allPhoneNumbers
 
 def extractEmail(copiedText):
-  
   # Create a regex for emails
   emailRegex = re.compile(r'''
   # some.+_thing@something.com
