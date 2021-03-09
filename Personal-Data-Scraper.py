@@ -13,6 +13,14 @@ location = os.getcwd()
 
 def main():
 
+  print('This is your current working directory: ' + os.getcwd())
+  try:
+    print('Where would you like to save your file at? Please input the full path: ')
+    location = input()
+    os.chdir(location)
+  except:
+    print('You did not enter a valid path. File will be saved in current working directory.')
+
   # Connect to database
   conn = sqlite3.connect(dbName)
   # Allow database manipulation
@@ -26,7 +34,7 @@ def main():
     # Save created tables into database
     conn.commit()
   except:
-    print('Tables already exists...')
+    print('Tables already exists. Inserting more values...')
 
   # Uses clipboard to extract each link
   getLink()

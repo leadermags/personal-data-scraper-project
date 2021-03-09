@@ -1,11 +1,11 @@
 # Personal Data Web Scraper
 
-This is a Python script that goes through the copied links then scrapes any emails and phone numbers from each link that was copied onto the clipboard, then paste those data into an Excel workbook. This is for anyone or any organizations that do not want private emails to readily available to the public. From my internship experience, I learned about the risks that follow a successful phishing attack. By limiting private email addresses found on public webpages and have a group email instead can deter targeted phishing attacks.
+This is a Python script that goes through the copied links then scrapes any emails and phone numbers from each link that was copied onto the clipboard, then paste those data into a database using SQLite. This is for anyone or any organizations that do not want private emails to readily available to the public. From my internship experience, I learned about the risks that follow a successful phishing attack. By limiting private email addresses found on public webpages and have a group email instead can deter targeted phishing attacks.
 
-On the saved Excel workbook, the first sheet will be a list of all the links that was found in the copied text in your clipboard. The subsequent sheets correlate to the data scraped for which row of the first sheet, 'All Links'. In the subsequent sheets:
-- Column A - Link Address
-- Column B - Email Address(es)
-- Column C - Phone Number(s)
+If chosen to save from database into CSV, the output would be:
+- Column B - Link Address
+- Column C - Email Address(es)
+- Column D - Phone Number(s)
 
 There is also a .bat file template to allow you to run the script using Windows+R.
 
@@ -26,8 +26,19 @@ Pyperclip Module - use clipboard for copy and paste
 Beautiful Soup Module - HTML parser
    `pip.exe install beautifulsoup4`
 
-Openpyxl Module - creates and edits Excel workbooks
-   `pip.exe install openpyxl`
+## Other modules already included in Python:
+
+Regular Expressions
+   `import re`
+
+SQLite
+   `import sqlite3`
+
+Pandas
+   `import pandas as pd`
+
+Operating System
+   `import os`
 
 ## Setting up PATH environmental variable:
 
