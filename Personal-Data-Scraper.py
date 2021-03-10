@@ -5,13 +5,20 @@ import re
 import sqlite3
 import pandas as pd
 import os
+import sys
 
 fileName = 'scraper_results.csv'
 dbName = 'scraped-personal-data.db'
-# Get current working directory to know where file will be saved
-location = os.getcwd()
 
 def main():
+
+  # open file at the second argument of commandline to read entire file then close file
+  inputFile = open(sys.argv[1], "r")
+  content = inputFile.read(-1) 
+  inputFile.close()
+
+  # copy contents of file onto clipboard
+  pyperclip.copy(content)
 
   print('This is your current working directory: ' + os.getcwd())
   try:
@@ -20,6 +27,25 @@ def main():
     os.chdir(location)
   except:
     print('You did not enter a valid path. File will be saved in current working directory.')
+    
+  location = os.getcwd()
+
+  # Create tables if not exist in database
+  createTablesInDB()
+  # Insert scraped data into database
+  insertIntoDB()
+
+  print('Do you want to save it into a CSV? [Press "yes"]')
+  userInput = input()
+
+  if (userInput.lower() == 'yes'):
+    insertIntoCSV()
+    print('Scraped Emails and Phone Numbers saved in CSV: ' + location + '\\' + fileName)
+  else:
+    print('Scraped Emails and Phone Numbers saved in database: ' + location + '\\' + dbName)
+
+# Check and create tables if not exist
+def createTablesInDB():
 
   # Connect to database
   conn = sqlite3.connect(dbName)
@@ -36,39 +62,68 @@ def main():
   except:
     print('Tables already exists. Inserting more values...')
 
-  # Uses clipboard to extract each link
-  getLink()
-
-  print('Do you want to save it into a CSV? ')
-  saveToCSV = input()
-
-  if (saveToCSV.lower() == 'yes'):
-
-    # SQL query to first outputs all emails then phone numbers into CSV
-    sql = """SELECT l.Link, e.Email, ''
-          FROM Links l
-          INNER JOIN Emails e ON l.Link = e.Link
-          
-          UNION ALL
-          
-          SELECT l.Link, '', p.Phone
-          FROM Links l
-          INNER JOIN Phones p ON l.Link = p.Link;"""
-    
-    # Use Pandas Module to allow write to CSV from database
-    df = pd.read_sql_query(sql, conn)
-    df.to_csv(fileName)
-
-    print('Scraped Emails and Phone Numbers saved in CSV: ' + location + '\\' + fileName)
-
-  else:
-    print('Scraped Emails and Phone Numbers saved in database: ' + location + '\\' + dbName)
-
   # Close database
   conn.close()
 
-# Extract links then calls other functions for each link in extracted links
-def getLink():
+# Insert extracted values into database
+def insertIntoDB():
+  # Connect to database
+  conn = sqlite3.connect(dbName)
+  # Allow database manipulation
+  c = conn.cursor()
+
+  extractedLinks = extractLink()
+
+  # i iterates for each ID number
+  i = 1      
+  for link in extractedLinks:
+
+    # SQL query to insert each link into table Links
+    c.execute('''INSERT INTO Links VALUES(?, ?)''', (i, link))
+    
+    # calls function to get the HTML source of each link
+    getSource(link)
+    
+    # Get the text off the clipboard to pass into functions for scraping out the specified text
+    extractedPhones = extractPhone()
+    extractedEmails = extractEmail()
+
+    # j iterates for each ID number for table Phones
+    j = 1
+    for phone in extractedPhones:
+      # SQL query to insert current link and each phone number into table Phones
+      c.execute('''INSERT INTO Phones VALUES(?, ?, ?)''', (j, link, phone))
+
+    # j iterates for each ID number for table Emails
+    j = 1
+    for email in extractedEmails:
+      # SQL query to insert current link and each email into table Emails
+      c.execute('''INSERT INTO Emails VALUES(?, ?, ?)''', (j, link, email))
+
+    i += 1
+
+    # Save inserts into database
+    conn.commit()
+
+  conn.close()
+
+  return
+
+# Parse html using bs4 then copy text onto clipboard
+def getSource(link):
+
+  # error handling if source HTML could not be retrieved
+  try:
+    res = requests.get(str(link))
+    res.raise_for_status()
+    soup = bs4.BeautifulSoup(res.text, 'html.parser')
+    elems = soup.select('body')
+    return pyperclip.copy(str(elems))
+  except:
+    print('ERROR: Could not get ' + link)
+
+# Extract links
+def extractLink():
   # Create a regex for webpages
   linkRegex = re.compile(r'''
   (http(s)?://                      # links starting with http:// or https://
@@ -82,59 +137,10 @@ def getLink():
   for l in extractedLinks:
     allLinks.append(l[0])           # only save link at index 0
 
-  # Connect to database
-  conn = sqlite3.connect(dbName)
-  # Allow database manipulation
-  c = conn.cursor()
+  return allLinks
 
-  # i iterates for each ID number
-  i = 1      
-  for link in allLinks:
-
-    # SQL query to insert each link into table Links
-    c.execute('''INSERT INTO Links VALUES(?, ?)''', (i, link))
-    
-    # calls function to get the HTML source of each link
-    getSource(link)
-    
-    # Get the text off the clipboard to pass into functions for scraping out the specified text
-    copiedText = pyperclip.paste()
-    extractedPhone = extractPhone(copiedText)
-    extractedEmail = extractEmail(copiedText)
-
-    # j iterates for each ID number for table Phones
-    j = 1
-    for phone in extractedPhone:
-      # SQL query to insert current link and each phone number into table Phones
-      c.execute('''INSERT INTO Phones VALUES(?, ?, ?)''', (j, link, phone))
-
-    # j iterates for each ID number for table Emails
-    j = 1
-    for email in extractedEmail:
-      # SQL query to insert current link and each email into table Emails
-      c.execute('''INSERT INTO Emails VALUES(?, ?, ?)''', (j, link, email))
-
-    i += 1
-
-    # Save inserts into database
-    conn.commit()
-
-  return
-
-# Copy text from links' html using bs4
-def getSource(link):
-
-  # error handling if source HTML could not be retrieved
-  try:
-    res = requests.get(str(link))
-    res.raise_for_status()
-    soup = bs4.BeautifulSoup(res.text, 'html.parser')
-    elems = soup.select('body')
-    return pyperclip.copy(str(elems))
-  except:
-    print('ERROR: Could not get ' + link)
-
-def extractPhone(copiedText):
+# Extract phone numbers
+def extractPhone():
   # Create a regex for phone numbers
   phoneRegex = re.compile(r'''
   # 000-000-0000, 000-0000, (000) 000-0000, 000-0000 ext 12345, ext. 12345, x12345
@@ -149,6 +155,8 @@ def extractPhone(copiedText):
   )
   ''', re.VERBOSE)
 
+  # Extract phone numbers from clipboard
+  copiedText = pyperclip.paste()
   extractedPhone = phoneRegex.findall(copiedText)
   
   allPhoneNumbers = []
@@ -157,7 +165,8 @@ def extractPhone(copiedText):
 
   return allPhoneNumbers
 
-def extractEmail(copiedText):
+# Extract emails
+def extractEmail():
   # Create a regex for emails
   emailRegex = re.compile(r'''
   # some.+_thing@something.com
@@ -168,8 +177,33 @@ def extractEmail(copiedText):
 
   ''', flags=re.VERBOSE | re.I)
 
+  # Extract emails from clipboard
+  copiedText = pyperclip.paste()
   extractedEmail = emailRegex.findall(copiedText)
 
   return extractedEmail
+
+# Query from database and save as .csv
+def insertIntoCSV():
+  # Connect to database
+  conn = sqlite3.connect(dbName)
+
+  # SQL query to first outputs all emails then phone numbers into CSV
+  sql = """SELECT l.Link, e.Email, ''
+        FROM Links l
+        INNER JOIN Emails e ON l.Link = e.Link
+        
+        UNION ALL
+        
+        SELECT l.Link, '', p.Phone
+        FROM Links l
+        INNER JOIN Phones p ON l.Link = p.Link;"""
+  
+  # Use Pandas Module to allow write to CSV from database
+  df = pd.read_sql_query(sql, conn)
+  df.to_csv(fileName)
+    
+  # Close database
+  conn.close()
 
 main()

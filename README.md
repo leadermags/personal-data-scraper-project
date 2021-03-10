@@ -7,11 +7,13 @@ If chosen to save from database into CSV, the output would be:
 - Column C - Email Address(es)
 - Column D - Phone Number(s)
 
-There is also a .bat file template to allow you to run the script using Windows+R.
-
 I would like to expand this project to extract other personal data.
 
 The project started off with one of Al Sweigart's [*Automate the Boring Stuff with Python*](https://automatetheboringstuff.com/2e/chapter7/) projects. Then I got inspired to incorporate other ways to automate and track the amount of emails and phone numbers found on websites. 
+
+# Command to run file on Windows
+
+   `Personal-Data-Scraper.bat <filepath\file>`
 
 ## Installing the modules used in this script:
 
@@ -39,6 +41,9 @@ Pandas
 
 Operating System
    `import os`
+
+System specific parameters and functions (Sys)
+   `import sys`
 
 ## Setting up PATH environmental variable:
 
